@@ -32,6 +32,7 @@
 
 #include <hcc/kalmar_runtime.h>
 #include <hcc/kalmar_aligned_alloc.h>
+#include <hcc/hc_db.hpp>
 
 #include <hc_am.hpp>
 
@@ -40,6 +41,7 @@
 #include <time.h>
 #include <iomanip>
 
+#define KALMAR_DEBUG (0)
 #ifndef KALMAR_DEBUG
 #define KALMAR_DEBUG (0)
 #endif
@@ -93,48 +95,23 @@ int HCC_SERIALIZE_COPY = 0;
 
 int HCC_OPT_FLUSH=0;
 
-#define DB_MISC      0x0  // 0x01  // misc debug, not yet classified.
-#define DB_CMD       0x1  // 0x02  // Kernel and COpy Commands and synchronization
-#define DB_WAIT      0x2  // 0x04  // Synchronization and waiting for commands to finish.
-#define DB_AQL       0x3  // 0x08  // Decode and display AQL packets 
-#define DB_QUEUE     0x4  // 0x10  // Queue creation and desruction commands
-#define DB_SIG       0x5  // 0x20  // Signal creation, allocation, pool
-#define DB_LOCK      0x6  // 0x40  // Locks and HCC thread-safety code
-#define DB_KERNARG   0x7  // 0x80  // Decode and display AQL packets 
 unsigned HCC_DB = 0;
 
-std::vector<std::string> g_DbStr = {"misc", "cmd", "wait", "aql", "queue", "sig", "lock", "kernarg" };
 
 int HCC_MAX_QUEUES = 24;
 
 
+
+// Debug-related code:
 // Track a short thread-id, for debugging:
 static std::atomic<int> s_lastShortTid(1);
 
-// Class with a constructor that gets called when new thread is created:
-struct ShortTid {
-    ShortTid() {
-        _shortTid = s_lastShortTid.fetch_add(1);
-    }
-    int _shortTid;
-};
+ShortTid::ShortTid() {
+    _shortTid = s_lastShortTid.fetch_add(1);
+}
+
 
 thread_local ShortTid hcc_tlsShortTid;
-
-// Macro for prettier debug messages, use like:
-// DBOUT(" Something happened" << myId() << " i= " << i << "\n");
-#define COMPILE_HCC_DB 1
-
-#define DBFLAG(db_flag) (HCC_DB & (1<<db_flag))
-
-// Use str::stream so output is atomic wrt other threads:
-#define DBOUT(db_flag, msg) \
-if (COMPILE_HCC_DB && (HCC_DB & (1<<(db_flag)))) { \
-    std::stringstream sstream;\
-    sstream << "   hcc-" << g_DbStr[db_flag] << " tid:" << hcc_tlsShortTid._shortTid << " " << msg ; \
-    std::cerr << sstream.str();\
-};
-
 
 
 
@@ -818,7 +795,7 @@ struct RocrQueue {
         /// Create a queue using the maximum size.
         hsa_status_t status = hsa_queue_create(agent, queue_size, HSA_QUEUE_TYPE_SINGLE, NULL, NULL,
                                   UINT32_MAX, UINT32_MAX, &_hwQueue);
-        DBOUT(DB_QUEUE, "  " <<  __func__ << ": created an HSA command queue: " << _hwQueue << "\n");
+        DBOUTL(DB_QUEUE, "  " <<  __func__ << ": created an HSA command queue: " << _hwQueue );
 
         STATUS_CHECK(status, __LINE__);
 
@@ -830,7 +807,7 @@ struct RocrQueue {
 
     ~RocrQueue() {
 
-        DBOUT(DB_QUEUE, "  " <<  __func__ << ": destroy an HSA command queue: " << _hwQueue << "\n");
+        DBOUTL(DB_QUEUE, "  " <<  __func__ << ": destroy an HSA command queue: " << _hwQueue );
 
         hsa_status_t status = hsa_queue_destroy(_hwQueue);
         _hwQueue = 0;
@@ -4280,18 +4257,14 @@ HSACopy::syncCopyExt(Kalmar::HSAQueue *hsaQueue, hc::hcCommandKind copyDir, cons
 
 
 
-#if KALMAR_DEBUG
-    std::cerr << "hcCommandKind: " << getHcCommandKindString(copyDir) << "\n";
-#endif
+    DBOUT(DB_COPY, "hcCommandKind: " << getHcCommandKindString(copyDir) << "\n");
 
     bool useFastCopy = true;
     switch (copyDir) {
         case Kalmar::hcMemcpyHostToDevice:
             if (!srcInTracker || forceUnpinnedCopy) {
-#if KALMAR_DEBUG
-                std::cerr << "HSACopy::syncCopy(), invoke UnpinnedCopyEngine::CopyHostToDevice()\n";
+                DBOUT (DB_COPY, "HSACopy::syncCopy(), invoke UnpinnedCopyEngine::CopyHostToDevice()\n");
 
-#endif
                 copyDevice->copy_engine[0]->CopyHostToDevice(copyDevice->copy_mode, dst, src, sizeBytes, depSignalCnt ? &depSignal : NULL);
                 useFastCopy = false;
             }
@@ -4300,9 +4273,7 @@ HSACopy::syncCopyExt(Kalmar::HSAQueue *hsaQueue, hc::hcCommandKind copyDir, cons
 
         case Kalmar::hcMemcpyDeviceToHost:
             if (!dstInTracker || forceUnpinnedCopy) {
-#if KALMAR_DEBUG
-                std::cerr << "HSACopy::syncCopy(), invoke UnpinnedCopyEngine::CopyDeviceToHost()\n";
-#endif
+                DBOUT(DB_COPY, "HSACopy::syncCopy(), invoke UnpinnedCopyEngine::CopyDeviceToHost()\n");
                 UnpinnedCopyEngine::CopyMode d2hCopyMode = copyDevice->copy_mode;
                 if (d2hCopyMode == UnpinnedCopyEngine::UseMemcpy) {
                     // override since D2H does not support Memcpy
@@ -4314,9 +4285,7 @@ HSACopy::syncCopyExt(Kalmar::HSAQueue *hsaQueue, hc::hcCommandKind copyDir, cons
             break;
 
         case Kalmar::hcMemcpyHostToHost:
-#if KALMAR_DEBUG
-            std::cerr << "HSACopy::syncCopy(), invoke memcpy\n";
-#endif
+            DBOUT(DB_COPY, "HSACopy::syncCopy(), invoke memcpy\n");
             // Since this is sync copy, we assume here that the GPU has already drained younger commands.
 
             // This works for both mapped and unmapped memory:
@@ -4328,9 +4297,7 @@ HSACopy::syncCopyExt(Kalmar::HSAQueue *hsaQueue, hc::hcCommandKind copyDir, cons
             if (forceUnpinnedCopy) {
                 hsa_agent_t dstAgent = * (static_cast<hsa_agent_t*> (dstPtrInfo._acc.get_hsa_agent()));
                 hsa_agent_t srcAgent = * (static_cast<hsa_agent_t*> (srcPtrInfo._acc.get_hsa_agent()));
-#if KALMAR_DEBUG
-                std::cerr << "HSACopy:: P2P copy by engine forcing use of staging buffers.  copyEngine=" << copyDevice << "\n";
-#endif
+                DBOUT(DB_COPY, "HSACopy:: P2P copy by engine forcing use of staging buffers.  copyEngine=" << copyDevice << "\n");
 
                 // TODO, which staging buffer should we use for this to be optimal?
                 copyDevice->copy_engine[1]->CopyPeerToPeer(dst, dstAgent, src, srcAgent, sizeBytes, depSignalCnt ? &depSignal : NULL);
@@ -4348,9 +4315,7 @@ HSACopy::syncCopyExt(Kalmar::HSAQueue *hsaQueue, hc::hcCommandKind copyDir, cons
     if (useFastCopy) {
         // Didn't already handle copy with one of special (slow) cases above, use the standard runtime copy path.
 
-#if KALMAR_DEBUG
-        std::cerr << "HSACopy::syncCopy(), useFastCopy=1, fetch and init a HSA signal\n";
-#endif
+        DBOUT(DB_COPY, "HSACopy::syncCopy(), useFastCopy=1, fetch and init a HSA signal\n");
 
         // Get a signal and initialize it:
         std::pair<hsa_signal_t, int> ret = Kalmar::ctx.getSignal();
@@ -4369,18 +4334,12 @@ HSACopy::syncCopyExt(Kalmar::HSAQueue *hsaQueue, hc::hcCommandKind copyDir, cons
         hsa_status_t hsa_status = hcc_memory_async_copy(copyDir, copyDevice, dstPtrInfo, srcPtrInfo, sizeBytes, depSignalCnt, depSignalCnt ? &depSignal:NULL, signal);
 
         if (hsa_status == HSA_STATUS_SUCCESS) {
-#if KALMAR_DEBUG
-            std::cerr << "HSACopy::syncCopy(), wait for completion...";
-#endif
+            DBOUT(DB_COPY, "HSACopy::syncCopy(), wait for completion...");
             hsa_signal_wait_relaxed(signal, HSA_SIGNAL_CONDITION_LT, 1, UINT64_MAX, waitMode);
 
-#if KALMAR_DEBUG
-            std::cerr << "done!\n";
-#endif
+            DBOUT(DB_COPY, "done!\n");
         } else {
-#if KALMAR_DEBUG
-            std::cerr << "HSACopy::syncCopy(), hsa_amd_memory_async_copy() returns: 0x" << std::hex << hsa_status << std::dec <<"\n";
-#endif
+            DBOUT(DB_COPY, "HSACopy::syncCopy(), hsa_amd_memory_async_copy() returns: 0x" << std::hex << hsa_status << std::dec <<"\n");
             throw Kalmar::runtime_exception("hsa_amd_memory_async_copy error", hsa_status);
         }
         Kalmar::ctx.releaseSignal(signal, signalIndex);
@@ -4403,9 +4362,7 @@ HSACopy::syncCopyExt(Kalmar::HSAQueue *hsaQueue, hc::hcCommandKind copyDir, cons
 void
 HSACopy::syncCopy(Kalmar::HSAQueue* hsaQueue) {
 
-#if KALMAR_DEBUG
-    std::cerr << "HSACopy::syncCopy(" << hsaQueue << "), src = " << src << ", dst = " << dst << ", sizeBytes = " << sizeBytes << "\n";
-#endif
+    DBOUT(DB_COPY, "HSACopy::syncCopy(" << hsaQueue << "), src = " << src << ", dst = " << dst << ", sizeBytes = " << sizeBytes << "\n");
 
     // The tracker stores information on all device memory allocations and all pinned host memory, for the specified device
     // If the memory is not found in the tracker, then it is assumed to be unpinned host memory.
@@ -4429,12 +4386,10 @@ HSACopy::syncCopy(Kalmar::HSAQueue* hsaQueue) {
     } // Else - dstNotMapped=dstInDeviceMem=false
 
 
-#if KALMAR_DEBUG
-    std::cerr << "srcInTracker: " << srcInTracker << "\n";
-    std::cerr << "srcInDeviceMem: " << srcInDeviceMem << "\n";
-    std::cerr << "dstInTracker: " << dstInTracker << "\n";
-    std::cerr << "dstInDeviceMem: " << dstInDeviceMem << "\n";
-#endif
+    DBOUT(DB_COPY, "srcInTracker: " << srcInTracker << "\n");
+    DBOUT(DB_COPY, "srcInDeviceMem: " << srcInDeviceMem << "\n");
+    DBOUT(DB_COPY, "dstInTracker: " << dstInTracker << "\n");
+    DBOUT(DB_COPY, "dstInDeviceMem: " << dstInDeviceMem << "\n");
 
     // Resolve default to a specific Kind so we know which algorithm to use:
     setCommandKind (resolveMemcpyDirection(srcInDeviceMem, dstInDeviceMem));
