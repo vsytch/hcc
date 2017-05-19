@@ -97,29 +97,29 @@ node ('rocmtest')
             ../..
           make -j\$(nproc) install
         """
+    }
 
-      // Cap the maximum amount of testing, in case of hangs
-      timeout(time: 1, unit: 'HOURS')
+    // Cap the maximum amount of testing, in case of hangs
+    timeout(time: 1, unit: 'HOURS')
+    {
+      stage("unit testing")
       {
-        stage("unit testing")
-        {
-          // install from debian packages because pre/post scripts set up softlinks install targets don't
-          sh  """#!/usr/bin/env bash
-              mkdir -p ${build_dir_cmake_tests_abs}
-              cd ${build_dir_cmake_tests_abs}
-              CXX=${hcc_install_prefix}/bin/hcc cmake ${workspace_dir_abs}/cmake-tests
-              make
-              ./cmake-test
-              """
-          // junit "${build_dir_release_abs}/*.xml"
-        }
+        // install from debian packages because pre/post scripts set up softlinks install targets don't
+        sh  """#!/usr/bin/env bash
+            mkdir -p ${build_dir_cmake_tests_abs}
+            cd ${build_dir_cmake_tests_abs}
+            CXX=${hcc_install_prefix}/bin/hcc cmake ${workspace_dir_abs}/cmake-tests
+            make
+            ./cmake-test
+            """
+        // junit "${build_dir_release_abs}/*.xml"
       }
+    }
 
-      stage("packaging")
-      {
-        sh "cd ${build_dir_release_abs}; make package"
-        archiveArtifacts artifacts: "${build_dir_release_rel}/*.deb", fingerprint: true
-      }
+    stage("packaging")
+    {
+      sh "cd ${build_dir_release_abs}; make package"
+      archiveArtifacts artifacts: "${build_dir_release_rel}/*.deb", fingerprint: true
     }
   }
 
