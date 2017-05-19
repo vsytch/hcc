@@ -343,13 +343,6 @@ add_custom_command(TARGET clang POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E create_symlink ${CLANG_BIN_DIR}/lib/clang/5.0.0/lib/linux/libclang_rt.builtins-x86_64.a ${PROJECT_BINARY_DIR}/lib/libclang_rt.builtins-x86_64.a
 )
 
-install(FILES ${PROJECT_BINARY_DIR}/bin/hcc
-              ${PROJECT_BINARY_DIR}/bin/clang++
-              ${PROJECT_BINARY_DIR}/bin/clang
-              ${PROJECT_BINARY_DIR}/bin/llvm-mc
-              ${PROJECT_BINARY_DIR}/bin/llvm-objdump
-              ${PROJECT_BINARY_DIR}/bin/lld
-        DESTINATION bin)
 
 # install clang along with HCC
 # stored under compiler/
@@ -396,6 +389,14 @@ install(DIRECTORY ${CLANG_SRC_DIR}/include
         PATTERN CMakeFiles EXCLUDE
         PATTERN CMakeLists* EXCLUDE
         PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ)
+
+install(FILES ${PROJECT_BINARY_DIR}/bin/hcc
+              ${PROJECT_BINARY_DIR}/bin/clang++
+              ${PROJECT_BINARY_DIR}/bin/clang
+              ${PROJECT_BINARY_DIR}/bin/llvm-mc
+              ${PROJECT_BINARY_DIR}/bin/llvm-objdump
+              ${PROJECT_BINARY_DIR}/bin/lld
+        DESTINATION bin)
 
 add_custom_target(world DEPENDS clang)
 
