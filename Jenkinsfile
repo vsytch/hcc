@@ -77,11 +77,12 @@ node ('rocmtest13')
 // JENKINS-33510: the jenkinsfile dir() command is not workin well with docker.inside()
   hcc_build_image.inside( '--device=/dev/kfd' )
   {
+    def build_config = "Release"
+    def hcc_install_prefix = "/opt/rocm"
+    
     stage('hcc-lc release')
     {
       // Build release hcc
-      def build_config = "Release"
-      def hcc_install_prefix = "/opt/rocm"
 
       // cmake -B${build_dir_release_abs} specifies to cmake where to generate build files
       // This is necessary because cmake seemingly randomly generates build makefile into the docker
