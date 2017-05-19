@@ -9,7 +9,7 @@ properties([buildDiscarder(logRotator(
     numToKeepStr: '10')),
   disableConcurrentBuilds()])
 
-node ('rocmtest')
+node ('rocmtest13')
 {
   // Convenience variables for common paths used in building
   def workspace_dir_abs = pwd()
