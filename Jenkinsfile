@@ -95,7 +95,7 @@ node ('rocmtest')
             -DCMAKE_BUILD_TYPE=${build_config} \
             -DHSA_AMDGPU_GPU_TARGET="gfx701;gfx803" \
             ../..
-          make -j\$(nproc)
+          make -j\$(nproc) install
         """
 
       // Cap the maximum amount of testing, in case of hangs
@@ -105,8 +105,6 @@ node ('rocmtest')
         {
           // install from debian packages because pre/post scripts set up softlinks install targets don't
           sh  """#!/usr/bin/env bash
-              cd ${build_dir_release_abs}
-              make install || ls -lR ${hcc_install_prefix}
               mkdir -p ${build_dir_cmake_tests_abs}
               cd ${build_dir_cmake_tests_abs}
               CXX=${hcc_install_prefix}/bin/hcc cmake ${workspace_dir_abs}/cmake-tests
