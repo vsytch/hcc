@@ -106,7 +106,7 @@ node ('rocmtest')
           // install from debian packages because pre/post scripts set up softlinks install targets don't
           sh  """#!/usr/bin/env bash
               cd ${build_dir_release_abs}
-              make install
+              make install || ls -lr ${hcc_install_prefix}
               mkdir -p ${build_dir_cmake_tests_abs}
               cd ${build_dir_cmake_tests_abs}
               CXX=${hcc_install_prefix}/bin/hcc cmake ${workspace_dir_abs}/cmake-tests
