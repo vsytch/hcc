@@ -13,12 +13,11 @@ node ('rocmtest13')
 {
   // Convenience variables for common paths used in building
   def workspace_dir_abs = pwd()
-  def build_dir_debug_rel = "build/debug"
-  def build_dir_release_rel = "build/release"
-  def build_dir_cmake_tests_rel = "build/cmake-tests"
-  def build_dir_debug_abs = "${workspace_dir_abs}/${build_dir_debug_rel}"
-  def build_dir_release_abs = "${workspace_dir_abs}/${build_dir_release_rel}"
-  def build_dir_cmake_tests_abs = "${workspace_dir_abs}/${build_dir_cmake_tests_rel}"
+  def src_dir = workspace_dir_abs
+  def build_dir = "${workspace_dir_abs}/build"
+  def build_dir_debug = "${build_dir}/debug"
+  def build_dir_release = "${build_dir}/release"
+  def build_dir_cmake_tests = "${build_dir}/cmake-tests"
 
   // The client workspace is shared with the docker container
   stage('HCC Checkout')
@@ -88,14 +87,16 @@ node ('rocmtest13')
       // This is necessary because cmake seemingly randomly generates build makefile into the docker
       // workspace instead of the current set directory.  Not sure why, but it seems like a bug
       sh  """
-          mkdir -p ${build_dir_release_rel}
-          cd ${build_dir_release_rel}
-          cmake -B${build_dir_release_abs} \
+          rm -rf ${build_dir}
+          mkdir ${build_dir}
+          mkdir -p ${build_dir_release}
+          cd ${build_dir_release}
+          cmake -B${build_dir_release} \
             -DCMAKE_INSTALL_PREFIX=${hcc_install_prefix} \
             -DCMAKE_BUILD_TYPE=${build_config} \
             -DHSA_AMDGPU_GPU_TARGET="gfx701;gfx803" \
-            ../..
-          make -j\$(nproc) install
+            ${src_dir}
+          cmake --build ${build_dir_release} --target install -- -j\$(nproc)
         """
     }
 
@@ -106,9 +107,9 @@ node ('rocmtest13')
       {
         // install from debian packages because pre/post scripts set up softlinks install targets don't
         sh  """#!/usr/bin/env bash
-            mkdir -p ${build_dir_cmake_tests_abs}
-            cd ${build_dir_cmake_tests_abs}
-            CXX=${hcc_install_prefix}/bin/hcc cmake ${workspace_dir_abs}/cmake-tests
+            mkdir ${build_dir_cmake_tests}
+            cd ${build_dir_cmake_tests}
+            CXX=${hcc_install_prefix}/bin/hcc cmake ${src_dir}/cmake-tests
             make
             ./cmake-test
             """
@@ -119,7 +120,7 @@ node ('rocmtest13')
     stage("packaging")
     {
       sh "cd ${build_dir_release_abs}; make package"
-      archiveArtifacts artifacts: "${build_dir_release_rel}/*.deb", fingerprint: true
+      archiveArtifacts artifacts: "${build_dir_release}/*.deb", fingerprint: true
     }
   }
 
