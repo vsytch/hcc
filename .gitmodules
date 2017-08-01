@@ -1,15 +1,15 @@
 [submodule "llvm"]
 	path = compiler
 	url = https://github.com/vsytch/llvm.git
-	branch = amd-hcc
+	branch = windows
 [submodule "lld"]
 	path = lld
 	url = https://github.com/vsytch/lld.git
-	branch = amd-hcc
+	branch = windows
 [submodule "clang"]
 	path = clang
 	url = https://github.com/vsytch/hcc-clang-upgrade.git
-	branch = clang_tot_upgrade
+	branch = windows
 [submodule "compiler-rt"]
 	path = compiler-rt
 	url = https://github.com/RadeonOpenCompute/compiler-rt
@@ -17,7 +17,7 @@
 [submodule "rocdl"]
 	path = rocdl
 	url = http://github.com/vsytch/ROCm-Device-Libs.git
-    branch = master
+    branch = windows
 [submodule "clang-tools-extra"]
 	path = clang-tools-extra
 	url = https://github.com/RadeonOpenCompute/clang-tools-extra.git
