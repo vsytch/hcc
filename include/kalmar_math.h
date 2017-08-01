@@ -84,9 +84,9 @@ extern "C" __fp16 __hc_exp_half(__fp16 x) restrict(amp);
 extern "C" float __hc_exp(float x) restrict(amp);
 extern "C" double __hc_exp_double(double x) restrict(amp);
 
-extern "C" __fp16 __hc_exp10_half(__fp16 x) restrict(amp);
-extern "C" float __hc_exp10(float x) restrict(amp);
-extern "C" double __hc_exp10_double(double x) restrict(amp);
+//extern "C" __fp16 __hc_exp10_half(__fp16 x) restrict(amp);
+//extern "C" float __hc_exp10(float x) restrict(amp);
+//extern "C" double __hc_exp10_double(double x) restrict(amp);
 
 extern "C" __fp16 __hc_exp2_native_half(__fp16 x) restrict(amp);
 extern "C" __fp16 __hc_exp2_half(__fp16 x) restrict(amp);
@@ -311,9 +311,9 @@ namespace Kalmar
         using std::cosh;
         using ::coshf;
         using std::exp;
-        using ::exp10;
+        //using ::exp10;
         using std::exp2;
-        using ::exp10f;
+        //using ::exp10f;
         using ::exp2f;
         using ::expf;
         using std::fabs;
@@ -719,8 +719,8 @@ namespace Kalmar
         using ::erfcf;
         using ::erff;
         using std::exp;
-        using ::exp10;
-        using ::exp10f;
+        //using ::exp10;
+        //using ::exp10f;
         using std::exp2;
         using ::exp2f;
         using ::expf;
@@ -1028,17 +1028,17 @@ namespace Kalmar
         HCC_MATH_LIB_FN
         double exp2(double x) { return __hc_exp2_double(x); }
 
-        HCC_MATH_LIB_FN
-        float exp10f(float x) { return __hc_exp10(x); }
+        //HCC_MATH_LIB_FN
+        //float exp10f(float x) { return __hc_exp10(x); }
 
-        HCC_MATH_LIB_FN
-        __fp16 exp10(__fp16 x) { return __hc_exp10_half(x); }
+        //HCC_MATH_LIB_FN
+        //__fp16 exp10(__fp16 x) { return __hc_exp10_half(x); }
 
-        HCC_MATH_LIB_FN
-        float exp10(float x) { return precise_math::exp10f(x); }
+        //HCC_MATH_LIB_FN
+        //float exp10(float x) { return precise_math::exp10f(x); }
 
-        HCC_MATH_LIB_FN
-        double exp10(double x) { return __hc_exp10_double(x); }
+        //HCC_MATH_LIB_FN
+        //double exp10(double x) { return __hc_exp10_double(x); }
 
         HCC_MATH_LIB_FN
         float expm1f(float x) { return __hc_expm1(x); }
