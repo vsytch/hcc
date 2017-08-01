@@ -26,8 +26,8 @@ inline void* kalmar_aligned_alloc(std::size_t alignment, std::size_t size) noexc
         alignment = N;
     }
     void* memptr = NULL;
-    // posix_memalign shall return 0 upon successfully allocate aligned memory
-    posix_memalign(&memptr, alignment, size);
+    
+    memptr = _aligned_malloc(size, alignment);
     assert(memptr);
 
     return memptr;
@@ -35,7 +35,7 @@ inline void* kalmar_aligned_alloc(std::size_t alignment, std::size_t size) noexc
 
 inline void kalmar_aligned_free(void* ptr) noexcept {
     if (ptr) {
-        free(ptr);
+        _aligned_free(ptr);
     }
 }
 
