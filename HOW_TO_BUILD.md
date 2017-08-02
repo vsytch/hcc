@@ -14,7 +14,7 @@ HCC on Windows
 - In the `Solution Explorer`, build the `ALL_BUILD` solution
 - In the `lib` folder, compile `inject_kernel.cpp` using the following command - `cl inject_kernel.cpp /EHsc`
 - Copy `inject_kernel.exe` to the `Release/bin` folder
-- Copy the Python scripts to the `Release/bin` folder
+- Copy the Python scripts from the `lib/scripts` folder to the `Release/bin` folder
 - Add the `hcc/build/Release/bin` folder to your path
 - In the `hcc/rocdl` folder run `build_rocdl.py` from the command line
 - Copy the contents of the `hcc/rocdl/build/lib` folder to `hcc/release/lib/rocld/lib`
