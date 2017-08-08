@@ -52,7 +52,7 @@ const wchar_t accelerator::default_accelerator[] = L"default";
 // weak symbols of kernel codes
 
 // Kernel bundle
-extern char const *kernel_binary_data;
+extern char kernel_binary_data[];
 
 
 // interface of HCC runtime implementation
@@ -116,7 +116,7 @@ class PlatformDetect {
 public:
   PlatformDetect(const std::string& name,
                  const std::string& ampRuntimeLibrary,
-                 void* const kernel_source)
+                 void* kernel_source)
     : m_name(name),
       m_ampRuntimeLibrary(ampRuntimeLibrary),
       m_kernel_source(kernel_source) {}
@@ -187,7 +187,7 @@ static RuntimeImpl* LoadPALRuntime() {
     delete runtimeImpl;
     exit(-1);
   } else {
-    std::cout << "PAL C++AMP runtime loaded" << std::endl;
+    //std::cout << "PAL C++AMP runtime loaded" << std::endl;
   }
   return runtimeImpl;
 }
@@ -313,7 +313,7 @@ inline void DetermineAndGetProgram(KalmarQueue* pQueue, size_t* kernel_size, voi
   size_t bundle_size = (size_t) *((int *)kernel_binary_data);
 
   // point to bundle file data
-  const char *data = kernel_binary_data + sizeof(int);
+  const char *data = ((const char *)kernel_binary_data) + sizeof(int);
   // skip OFFLOAD_BUNDLER_MAGIC_STR
   size_t pos = 0;
   if (pos + OFFLOAD_BUNDLER_MAGIC_STR_LENGTH > bundle_size) {
