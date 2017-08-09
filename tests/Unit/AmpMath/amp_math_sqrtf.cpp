@@ -9,7 +9,7 @@
 
 using namespace concurrency;
 
-#define ERROR_THRESHOLD (1e-4)
+#define ERROR_THRESHOLD (1e-1)
 
 template<typename _Tp>
 bool test() {
@@ -25,7 +25,7 @@ bool test() {
   // setup RNG
   std::random_device rd;
   std::default_random_engine gen(rd());
-  std::uniform_real_distribution<_Tp> dis(-M_PI, M_PI);
+  std::uniform_real_distribution<_Tp> dis(1, 100);
   array_view<_Tp> ga(a);
   array_view<_Tp> gb(b);
   array_view<_Tp> gc(c);
@@ -36,11 +36,11 @@ bool test() {
   parallel_for_each(
     e,
     [=](index<1> idx) restrict(amp) {
-    gc[idx] = precise_math::sin(ga[idx]);
+    gc[idx] = fast_math::sqrtf(ga[idx]);
   });
 
   for(unsigned i = 0; i < vecSize; i++) {
-    gb[i] = precise_math::sin(ga[i]);
+    gb[i] = fast_math::sqrtf(ga[i]);
   }
 
   _Tp sum = 0.0;
@@ -59,7 +59,6 @@ int main(void) {
   bool ret = true;
 
   ret &= test<float>();
-  ret &= test<double>();
 
   return !(ret == true);
 }

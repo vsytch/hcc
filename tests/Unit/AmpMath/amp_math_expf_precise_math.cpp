@@ -5,10 +5,11 @@
 #include <iostream>
 #include <random>
 #include <cmath>
+#include <cassert>
 
 using namespace concurrency;
 
-#define ERROR_THRESHOLD (1e-1)
+#define ERROR_THRESHOLD (1e-4)
 
 template<typename _Tp>
 bool test() {
