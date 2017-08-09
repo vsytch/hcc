@@ -40,7 +40,7 @@ bool test() {
   });
 
   for(unsigned i = 0; i < vecSize; i++) {
-    gb[i] = precise_math::cospi(ga[idx]);
+    gb[i] = precise_math::cospi(ga[i]);
   }
 
   _Tp sum = 0.0;

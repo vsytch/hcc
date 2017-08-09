@@ -36,11 +36,11 @@ bool test() {
   parallel_for_each(
     e,
     [=](index<1> idx) restrict(amp) {
-    gc[idx] = fast_math::ilogb(ga[idx]);
+    gc[idx] = precise_math::ilogb(ga[idx]);
   });
 
   for(unsigned i = 0; i < vecSize; i++) {
-    gb[i] = fast_math::ilogb(ga[i]);
+    gb[i] = precise_math::ilogb(ga[i]);
   }
 
   _Tp sum = 0.0;

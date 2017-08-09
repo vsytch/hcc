@@ -36,11 +36,11 @@ bool test() {
   parallel_for_each(
     e,
     [=](index<1> idx) restrict(amp) {
-    gc[idx] = fast_math::exp10(ga[idx]);
+    gc[idx] = precise_math::exp10(ga[idx]);
   });
 
   for(unsigned i = 0; i < vecSize; i++) {
-    gb[i] = fast_math::exp10(ga[i]);
+    gb[i] = precise_math::exp10(ga[i]);
   }
 
   _Tp sum = 0.0;
@@ -49,7 +49,7 @@ bool test() {
       printf("gc[%d] is NaN!\n", i);
       assert(false);
     }
-    _Tp diff = precise_math::fabs(gc[i] - gb[i]);
+    _Tp diff = fast_math::fabs(gc[i] - gb[i]);
     sum += diff;
   }
   return (sum < ERROR_THRESHOLD);
