@@ -53,7 +53,7 @@ bool test() {
       printf("gc[%d] is NaN!\n", i);
       assert(false);
     }
-    _Tp diff = precise_math::fabs(gc[i] - gb[i]);
+    _Tp diff = fast_math::fabs(gc[i] - gb[i]);
     sum += diff;
   }
   return (sum < ERROR_THRESHOLD);

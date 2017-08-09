@@ -54,7 +54,7 @@ bool test() {
       printf("gc[%d] is NaN!\n", i);
       assert(false);
     }
-    _Tp diff = precise_math::fabs(gc[i] - gd[i]);
+    _Tp diff = fast_math::fabs(gc[i] - gd[i]);
     sum += diff;
   }
   return (sum < ERROR_THRESHOLD);
