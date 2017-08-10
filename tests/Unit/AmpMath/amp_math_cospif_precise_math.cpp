@@ -36,11 +36,11 @@ bool test() {
   parallel_for_each(
     e,
     [=](index<1> idx) restrict(amp) {
-    gc[idx] = precise_math::cospif(ga[idx]);
+    gc[idx] = precise_math::cospi(ga[idx]);
   });
 
   for(unsigned i = 0; i < vecSize; i++) {
-    gb[i] = precise_math::cospif(ga[i]);
+    gb[i] = std::cos(static_cast<_Tp>(M_PI) * ga[i]);
   }
 
   _Tp sum = 0.0;
@@ -59,6 +59,7 @@ int main(void) {
   bool ret = true;
 
   ret &= test<float>();
+  ret &= test<double>();
 
   return !(ret == true);
 }

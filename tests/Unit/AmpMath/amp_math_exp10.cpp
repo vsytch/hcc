@@ -25,7 +25,7 @@ bool test() {
   // setup RNG
   std::random_device rd;
   std::default_random_engine gen(rd());
-  std::uniform_real_distribution<_Tp> dis(1, 10);
+  std::uniform_real_distribution<_Tp> dis(1, 4);
   array_view<_Tp> ga(a);
   array_view<_Tp> gb(b);
   array_view<_Tp> gc(c);
@@ -49,7 +49,7 @@ bool test() {
       printf("gc[%d] is NaN!\n", i);
       assert(false);
     }
-    _Tp diff = fast_math::fabs(gc[i] - gb[i]);
+    _Tp diff = fast_math::fabs((_Tp)(gc[i] - gb[i]);
     sum += diff;
   }
   return (sum < ERROR_THRESHOLD);
@@ -58,7 +58,8 @@ bool test() {
 int main(void) {
   bool ret = true;
 
-  ret &= test<float>();
+  //ret &= test<float>();
+  ret &= test<double>();
 
   return !(ret == true);
 }

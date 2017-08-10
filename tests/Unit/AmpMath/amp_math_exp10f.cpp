@@ -25,7 +25,7 @@ bool test() {
   // setup RNG
   std::random_device rd;
   std::default_random_engine gen(rd());
-  std::uniform_real_distribution<_Tp> dis(1, 10);
+  std::uniform_real_distribution<_Tp> dis(1, 4);
   array_view<_Tp> ga(a);
   array_view<_Tp> gb(b);
   array_view<_Tp> gc(c);

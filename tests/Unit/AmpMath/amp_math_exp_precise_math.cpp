@@ -9,7 +9,7 @@
 
 using namespace concurrency;
 
-#define ERROR_THRESHOLD (1e-4)
+#define ERROR_THRESHOLD (1e-1)
 
 template<typename _Tp>
 bool test() {
