@@ -1,11 +1,10 @@
 HCC on Windows
 ======================
-- Clone `hcc-windows`
+- Using VS2015 x64 Native Tools Command Promt clone `hcc`
 `git clone --recursive -b windows https://github.com/vsytch/hcc.git`
 - Change branches of submodules
 `git submodule update --remote`
 - Copy the `clang` and `lld` folders to the `compiler/tools` folder
-- Open the x64 Native Tools Command Promt for VS2015 (installed with Visual Studio 2015)
 - Create a `build` folder in the `hcc` folder
 - Fromt the `build` folder run the CMake command to generate the Visual Studio project for LLVM+Clang
 `cmake -DLLVM_TARGETS_TO_BUILD="X86;AMDGPU" -G "Visual Studio 14 Win64" ../compiler`
