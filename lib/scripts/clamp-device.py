@@ -30,6 +30,19 @@ if __name__ == "__main__":
     link = bindir + "/llvm-link"
     lib = bindir + "/../lib"
     lld = bindir + "/ld.lld"
+    llvm_dis = bindir + "/llvm-dis"
+    llvm_objdump = bindir + "/llvm-objdump"
+    dumpdir = os.getenv("HCC_DUMPDIR")
+    dump = os.getenv("HCC_DUMP")
+
+    if not dumpdir:
+        dumpdir = "."
+    dumpdir += "/dump"
+
+    if dump:
+        if os.path.isdir(dumpdir):
+            rmtree(dumpdir)
+        os.mkdir(dumpdir)
 
     if os.name == "nt":
         sl_ext = ".dll"
@@ -64,6 +77,14 @@ if __name__ == "__main__":
         if arg.startswith("--amdgpu-target="):
             amdgpu_target = arg[16:]
 
+    
+    if dump:
+        copyfile(argv[1], dumpdir + "/dump.input.bc")
+        check_call([llvm_dis,
+            dumpdir + "/dump.input.bc",
+            "-o",
+            dumpdir + "/dump.input.ll"])
+
     # Invoke HCC-specific opt passes
     f = open(argv[1], "rb")
     if os.name == "nt":
@@ -91,6 +112,13 @@ if __name__ == "__main__":
         print("Generating AMD GCN kernel failed in HCC-specific opt passes for target: %s" % amdgpu_target)
         exit(retval)
 
+    if dump:
+        copyfile(argv[2] + ".promote.bc", dumpdir + "/dump.promote.bc")
+        check_call([llvm_dis,
+            dumpdir + "/dump.promote.bc",
+            "-o",
+            dumpdir + "/dump.promote.ll"])
+    
     hcc_extra_arch_file = ""
 
     if amdgpu_target == "gfx700":
@@ -119,7 +147,7 @@ if __name__ == "__main__":
         "oclc_correctly_rounded_sqrt_on",
         "oclc_unsafe_math_off"]]
     hcc_bc_libs.append(oclc_isa_version_lib)
-    #copyfile(argv[2] + ".promote.bc", "C:/hcc files/saxpy64/saxpy.promote.bc")
+    
     p = Popen([link,
         "-suppress-warnings",
         "-o",
@@ -131,6 +159,13 @@ if __name__ == "__main__":
     if retval != 0:
        print("Generating AMD GCN kernel failed in llvm-link with ROCm-Device-Libs for target: %s" % amdgpu_target)
        exit(retval)
+
+    if dump:
+        copyfile(argv[2] + ".linked.bc", dumpdir + "/dump.linked.bc")
+        check_call([llvm_dis,
+            dumpdir + "/dump.linked.bc",
+            "-o",
+            dumpdir + "/dump.linked.ll"])
 
     p = Popen([opt,
         "-inline",
@@ -152,6 +187,13 @@ if __name__ == "__main__":
         print("Generating AMD GCN kernel failed in opt for target: %s" % amdgpu_target)
         exit(retval)
 
+    if dump:
+        copyfile(argv[2] + ".opt.bc", dumpdir + "/dump.opt.bc")
+        check_call([llvm_dis,
+            dumpdir + "/dump.opt.bc",
+            "-o",
+            dumpdir + "/dump.opt.ll"])
+
     p = Popen([llc,
         "-O2",
         "-mtriple",
@@ -167,6 +209,9 @@ if __name__ == "__main__":
         print("Generating AMD GCN kernel failed in llc for target: %s" % amdgpu_target)
         exit(retval)
 
+    if dump:
+        copyfile(argv[1], dumpdir + "/dump-" + amdgpu_target + ".isabin")
+            
     p = Popen([lld,
         "-shared",
         argv[2] + ".isabin",
@@ -177,6 +222,16 @@ if __name__ == "__main__":
     if retval != 0:
         print("Generating AMD GCN kernel failed in ld.lld for target: %s" % amdgpu_target)
         exit(retval)
+    
+    if dump:
+        copyfile(argv[2], dumpdir + "/dump.hsaco")
+        f = open(dumpdir + "/dump-" + amdgpu_target + ".isa", "w")
+        check_call([llvm_objdump,
+            "-disassemble",
+            "-mcpu=gfx803",
+            dumpdir + "/dump.hsaco"],
+            stdout = f)
+        f.close()
 
     for ext in [".promote.bc", ".linked.bc", ".opt.bc", ".isabin"]:
         os.remove(argv[2] + ext)
