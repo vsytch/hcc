@@ -5,7 +5,7 @@
 import os
 from sys import argv, exit
 from tempfile import mkdtemp
-from subprocess import Popen, check_call, PIPE
+from subprocess import Popen, call, PIPE, check_call
 from shutil import rmtree, copyfile
 
 if __name__ == "__main__":
@@ -15,8 +15,8 @@ if __name__ == "__main__":
     clang = bindir + "/clang"
     llvm_link = bindir + "/llvm-link"
     opt = bindir + "/opt"
+    kd = bindir + "/kd.py"
     libpath = bindir + "/../lib"
-    amdgpu_target = "gfx803"
 
     if len(argv) != 3:
         print("Usage: %s kernel-bitcode" % argv[0])
@@ -26,64 +26,42 @@ if __name__ == "__main__":
         print("kernel-bitcode %s is not valid" % argv[1])
         exit(1)
 
-    if not os.path.isfile(libpath + "/mcwamp.rar"):
-        print("Can't find mcwamp.rar")
-        exit(1)
+    if "Temp" not in argv[2]: #fix recgonizing -c
+        out = os.path.dirname(argv[1]) + "/" + os.path.splitext(os.path.basename(argv[2]))[0]
 
-    if (os.path.isfile("mcwamp.host.obj")):
-        os.remove("mcwamp.host.obj")
-    if (os.path.isfile("mcwamp.kernel.bc")):
-        os.remove("mcwamp.kernel.bc")
-    check_call(["unrar",
-                "e",
-                "-inul",
-                libpath + "/mcwamp.rar"])
+        with open(out + ".cpp", "ab") as obj:
+            check_call(["python",
+                        kd,
+                        "-i",
+                        argv[1]],
+                        stdout = obj)
+        
+        check_call([clang,
+                    "-c",
+                    "-emit-llvm",
+                    "-o",
+                    out + ".bc",
+                    out + ".cpp"])
 
-    p1 = Popen([llvm_link,
-        "mcwamp.kernel.bc",
-        argv[1]],
-        stdout = PIPE)
-    p2 = Popen([opt,
-        "-always-inline",
-        "-",
-        "-o",
-        "kernel.bc"],
-        stdin = p1.stdout)
-    p2.wait()
+        copyfile(out + ".bc", argv[2])
+        os.remove(out + ".bc")
+        os.remove(out + ".cpp")
 
-    open("empty.obj", "w").close()
-    clang_offload_bundler_input_args = "-inputs=empty.obj"
-    clang_offload_bundler_targets_args = "-targets=host-x86_64-pc-windows-msvc"
-
-    check_call(["python",
-        clamp_device,
-        "kernel.bc",
-        "kernel-" + amdgpu_target + ".hsaco",
-        "--amdgpu-target=" + amdgpu_target])
-    clang_offload_bundler_input_args += ",kernel-" + amdgpu_target + ".hsaco"
-    clang_offload_bundler_targets_args += ",hcc-amdgcn--amdhsa-" + amdgpu_target
-
-    check_call([clang_offload_bundler,
-            "-type=o",
-            clang_offload_bundler_input_args,
-            clang_offload_bundler_targets_args,
-            "-outputs=kernel.bundle"])
-    source_code = os.path.basename(argv[1][:argv[1].rfind("-")]) + ".cpp"
-    check_call(["inject_kernel",
-        "kernel.bundle",
-        "kernel_bundle_data.cpp"])
-    check_call(["cl.exe",
-        "kernel_bundle_data.cpp",
-        "/nologo",
-        "/c",
-        "/EHsc"])
-
-    os.remove("kernel_bundle_data.cpp")
-    os.remove("mcwamp.host.obj")
-    os.remove("mcwamp.kernel.bc")
-    os.remove("kernel.bc")
-    os.remove("empty.obj")
-    os.remove("kernel-" + amdgpu_target + ".hsaco")
-    os.remove("kernel.bundle")
+    else:
+        with open("temp_kernel.cpp", "ab") as obj:
+            check_call(["python",
+                        kd,
+                        "-i",
+                        argv[1]],
+                        stdout = obj)
+        
+        check_call([clang,
+                    "-c",
+                    "-o",
+                    argv[2],
+                    "temp_kernel.cpp"])
+        
+        os.remove("temp_kernel.cpp")
+    
     exit(0)
 

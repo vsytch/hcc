@@ -52,7 +52,7 @@ const wchar_t accelerator::default_accelerator[] = L"default";
 // weak symbols of kernel codes
 
 // Kernel bundle
-extern char kernel_binary_data[];
+extern unsigned char kernel_binary_data[];
 
 
 // interface of HCC runtime implementation
