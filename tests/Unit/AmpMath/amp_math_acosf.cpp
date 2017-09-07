@@ -41,7 +41,12 @@ bool test() {
 
   _Tp sum = 0.0;
   for(unsigned i = 0; i < vecSize; i++) {
-    sum += fast_math::fabs(fast_math::fabs(gc[i]) - fast_math::fabs(gb[i]));
+    if (std::isnan(gc[i])) {
+      printf("gc[%d] is NaN!\n", i);
+      assert(false);
+    }
+    _Tp diff = fast_math::fabs(gc[i] - gb[i]);
+    sum += diff;
   }
   return (sum < ERROR_THRESHOLD);
 }
