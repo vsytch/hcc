@@ -41,8 +41,7 @@
             <OutputDir Condition="'%(ClCompile.ObjectFileName)' != ''">%(ClCompile.ObjectFileName)</OutputDir>
             <OutputDir Condition="'%(ClCompile.ObjectFileName)' == ''">$(PlatForm)\$(Configuration)\</OutputDir>
         </PropertyGroup>
-
-        <Message Text="ObjectFileName: %(ClCompile.ObjectFileName)" />        
+       
         <ClangCompile
             ClangInputs="@(ClCompile)"
             ClangOutputs="@(ClCompile->'%(Filename).obj')"
