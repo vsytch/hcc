@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <Import Project="$(VCTargetsPath)\Microsoft.CppCommon.targets" />
+
+    <UsingTask TaskName="ClangTasks.ClangCompile" AssemblyFile="ClangTasks.dll" />
+    <UsingTask TaskName="ClangTasks.ClangLink" AssemblyFile="ClangTasks.dll" />
+    
+    <Target Name="ClCompile">
+
+        <PropertyGroup>
+            <VSSetup>&quot;C:/Program Files (x86)/Microsoft Visual Studio 14.0/VC/vcvarsall.bat&quot; amd64</VSSetup>
+
+            <Compiler Condition="'%(ClCompile.CompileAs)' == 'CompileAsC'">clang</Compiler>
+            <Compiler Condition="'%(ClCompile.CompileAs)' == 'CompileAsCpp'">clang++</Compiler>
+
+            <AdditionalIncludeDirectories>%(ClCompile.AdditionalIncludeDirectories)$(VC_IncludePath)$(WindowsSDK_IncludePath)</AdditionalIncludeDirectories>
+            <AdditionalIncludeDirectories>$([System.String]::Copy('$(AdditionalIncludeDirectories)').Replace(';;',';'))</AdditionalIncludeDirectories>
+            <AdditionalIncludeDirectories>$([System.String]::Copy('$(AdditionalIncludeDirectories)').TrimEnd(';').Replace(';','&quot; -I&quot;'))</AdditionalIncludeDirectories>
+            <AdditionalIncludeDirectories Condition="'$(AdditionalIncludeDirectories)' != ''">-I&quot;$(AdditionalIncludeDirectories)&quot;</AdditionalIncludeDirectories>
+
+            <PreprocessorDefinitions>$([System.String]::Copy('%(ClCompile.PreprocessorDefinitions)').TrimEnd(';').Replace(';',' -D'))</PreprocessorDefinitions>
+            <PreprocessorDefinitions Condition="'$(PreprocessorDefinitions)' != ''">-D$(PreprocessorDefinitions)</PreprocessorDefinitions>
+
+            <PreprocessorDefinitions Condition="'%(ClCompile.RuntimeLibrary)' == 'MultiThreaded'">$(PreprocessorDefinitions) -D_MT </PreprocessorDefinitions>
+            <AdditionalOptions Condition="'%(ClCompile.RuntimeLibrary)' == 'MultiThreaded'">%(ClCompile.AdditionalOptions) -Xclang --dependent-lib=libcmt -Xclang -flto-visibility-public-std</AdditionalOptions>
+
+            <PreprocessorDefinitions Condition="'%(ClCompile.RuntimeLibrary)' == 'MultiThreadedDebug'">$(PreprocessorDefinitions) -D_DEBUG -D_MT</PreprocessorDefinitions>
+            <AdditionalOptions Condition="'%(ClCompile.RuntimeLibrary)' == 'MultiThreadedDebug'">%(ClCompile.AdditionalOptions) -Xclang --dependent-lib=libcmtd -Xclang -flto-visibility-public-std</AdditionalOptions>
+
+            <PreprocessorDefinitions Condition="'%(ClCompile.RuntimeLibrary)' == 'MultiThreadedDLL'">$(PreprocessorDefinitions) -D_MT -D_DLL</PreprocessorDefinitions>
+            <AdditionalOptions Condition="'%(ClCompile.RuntimeLibrary)' == 'MultiThreadedDLL'">%(ClCompile.AdditionalOptions) -Xclang --dependent-lib=msvcrt</AdditionalOptions>
+
+            <PreprocessorDefinitions Condition="'%(ClCompile.RuntimeLibrary)' == 'MultiThreadedDebugDLL'">$(PreprocessorDefinitions) -D_DEBUG -D_MT -D_DLL</PreprocessorDefinitions>
+            <AdditionalOptions Condition="'%(ClCompile.RuntimeLibrary)' == 'MultiThreadedDebugDLL'">%(ClCompile.AdditionalOptions) -Xclang --dependent-lib=msvcrtd</AdditionalOptions>
+
+            <Ignore>-Wno-ignored-attributes -Wno-microsoft-template -Wno-duplicate-decl-specifier -Wno-logical-op-parentheses -Wno-dangling-else -Wno-nonportable-include-path -Wno-ignored-pragma-intrinsic -Wno-expansion-to-defined -Wno-int-to-void-pointer-cast -Wno-invalid-command-line-argument -Wno-unused-value -Wno-unused-command-line-argument -Wpragma-pack</Ignore>
+
+            <PreprocessorDefinitions>$(PreprocessorDefinitions) -D_USE_MATH_DEFINES=1 -D_CRT_SECURE_NO_WARNINGS=1 -D_SCL_SECURE_NO_WARNINGS=1</PreprocessorDefinitions>
+            <AdditionalOptions>$(AdditionalOptions) $(Ignore) -Xclang --dependent-lib=oldnames -fms-compatibility-version=19.0.24215 -fms-compatibility -fms-extensions -fdelayed-template-parsing -fdeclspec</AdditionalOptions>
+        
+            <OutputDir Condition="'%(ClCompile.ObjectFileName)' != ''">%(ClCompile.ObjectFileName)</OutputDir>
+            <OutputDir Condition="'%(ClCompile.ObjectFileName)' == ''">$(PlatForm)\$(Configuration)\</OutputDir>
+        </PropertyGroup>
+
+        <Message Text="ObjectFileName: %(ClCompile.ObjectFileName)" />        
+        <ClangCompile
+            ClangInputs="@(ClCompile)"
+            ClangOutputs="@(ClCompile->'%(Filename).obj')"
+            ClangOutputDir = "$(OutputDir)"
+            Clang="$(Compiler)"
+            ClangVSSetup="$(VSSetup)"
+            ClangVerbose="$(Verbose)"
+            ClangAdditionalOptions="$(AdditionalOptions)"
+            ClangAdditionalIncludeDirectories="$(AdditionalIncludeDirectories)"
+            ClangPreprocessorDefinitions="$(PreprocessorDefinitions)" />
+
+    </Target>
+
+    <Target Name="Link">
+
+        <PropertyGroup>
+            <VSSetup>&quot;C:/Program Files (x86)/Microsoft Visual Studio 14.0/VC/vcvarsall.bat&quot; amd64</VSSetup>
+
+            <AdditionalDependencies>$([System.String]::Copy('%(Link.AdditionalDependencies)').TrimEnd('.lib;').Replace('.lib;',' -l'))</AdditionalDependencies>
+            <AdditionalDependencies Condition="'$(AdditionalDependencies)' != ''">-l$(AdditionalDependencies)</AdditionalDependencies>
+
+            <DefaultLibrary Condition="'%(ClCompile.RuntimeLibrary)' == 'MultiThreaded'">-nostdlib -Xclang -defaultlib=libcmt</DefaultLibrary>
+            <DefaultLibrary Condition="'%(ClCompile.RuntimeLibrary)' == 'MultiThreadedDebug'">-nostdlib -Xclang -defaultlib=libcmtd</DefaultLibrary>
+            <DefaultLibrary Condition="'%(ClCompile.RuntimeLibrary)' == 'MultiThreadedDLL'">-nostdlib -Xclang -defaultlib=msvcrt</DefaultLibrary>
+            <DefaultLibrary Condition="'%(ClCompile.RuntimeLibrary)' == 'MultiThreadedDebugDLL'">-nostdlib -Xclang -defaultlib=msvcrtd</DefaultLibrary>
+
+            <AdditionalLibraryDirectories>$([System.String]::Copy('%(Link.AdditionalLibraryDirectories)').TrimEnd(';').Replace(';','&quot; -L&quot;'))</AdditionalLibraryDirectories>
+            <AdditionalLibraryDirectories Condition="'$(AdditionalLibraryDirectories)' != ''">-L&quot;$(AdditionalLibraryDirectories)&quot;</AdditionalLibraryDirectories>
+
+        </PropertyGroup>
+
+
+        <ClangLink
+            ClangVSSetup="$(VSSetup)"
+            ClangInputs="@(Link, '&quot; &quot;')"
+            ClangOutputs="$(TargetPath)"
+            ClangAdditionalOptions="%(Link.AdditionalOptions)"
+            ClangAdditionalDependencies="$(AdditionalDependencies)"
+            ClangAdditionalLibraryDirectories="$(AdditionalLibraryDirectories)"
+            ClangDefaultLibrary="$(DefaultLibrary)"
+            ClangConfiguration="$(ConfigurationType)" />
+
+    </Target>
+
+</Project>
