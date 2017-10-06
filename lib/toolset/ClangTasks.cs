@@ -91,25 +91,46 @@ namespace ClangTasks
         }
 
         private static Semaphore _pool;
+        private Object _lock;
 
         private void Compile(string Input, string Output)
         {
             _pool.WaitOne();
 
             BuildMessageEventArgs Msg;
-            Msg = new BuildMessageEventArgs("Building " + Output, string.Empty, "ClangTasks", MessageImportance.High);
-            engine.LogMessageEvent(Msg);
-
-            Process Process = new Process();
+            Process Compiler = new Process();
             ProcessStartInfo StartInfo = new ProcessStartInfo();
-            StartInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
+            StartInfo.UseShellExecute = false;
+            StartInfo.CreateNoWindow = true;
+            StartInfo.RedirectStandardError = true;
             StartInfo.FileName = "cmd.exe";
             StartInfo.Arguments = "/c" + " \"" + _vssetup + " & " + _clang + " -c " + _preprocessordefinitions + " " + _additionaloptions + " " + _additionalincludedirectories + " -o " + "\"" + _outputdir + Output + "\"" + " " + "\"" + Input + "\"" +"\"";
-            Msg = new BuildMessageEventArgs(StartInfo.Arguments, string.Empty, "ClangTasks", MessageImportance.High);
-            engine.LogMessageEvent(Msg);
-            Process.StartInfo = StartInfo;
-            Process.Start();
-            Process.WaitForExit();
+
+            lock (_lock)
+            {
+                Msg = new BuildMessageEventArgs("Building " + Output, string.Empty, "ClangTasks", MessageImportance.High);
+                engine.LogMessageEvent(Msg);
+
+                if (!string.IsNullOrEmpty(_verbose))
+                {
+                    Msg = new BuildMessageEventArgs(StartInfo.Arguments + "\r\n\r\n", string.Empty, "ClangTasks", MessageImportance.High);
+                    engine.LogMessageEvent(Msg);
+                }
+            }
+
+            Compiler.StartInfo = StartInfo;
+            Compiler.Start();
+            string error = Compiler.StandardError.ReadToEnd();
+            Compiler.WaitForExit();
+
+            if (!string.IsNullOrEmpty(error))
+            {
+                lock (_lock)
+                {
+                    Msg = new BuildMessageEventArgs("\r\n\r\n" + error, string.Empty, "ClangTasks", MessageImportance.High);
+                    engine.LogMessageEvent(Msg);
+                }
+            }
 
             _pool.Release();
         }
@@ -135,6 +156,7 @@ namespace ClangTasks
             string[] OutputsList = _outputs.Split(new string[] { ";" }, StringSplitOptions.None);
 
             _pool = new Semaphore(12, 12);
+            _lock = new Object();
 
             CreateJobs(InputsList.Length, InputsList, OutputsList);
 
@@ -156,6 +178,13 @@ namespace ClangTasks
         {
             get { return host; }
             set { host = value; }
+        }
+
+        private string _verbose;
+        public string ClangVerbose
+        {
+            get { return _verbose; }
+            set { _verbose = value; }
         }
 
         private string _vssetup;
@@ -220,9 +249,11 @@ namespace ClangTasks
         {
             BuildMessageEventArgs Msg;
 
-            Process Process = new Process();
+            Process Linker = new Process();
             ProcessStartInfo StartInfo = new ProcessStartInfo();
-            StartInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
+            StartInfo.UseShellExecute = false;
+            StartInfo.CreateNoWindow = true;
+            StartInfo.RedirectStandardError = true;
             StartInfo.FileName = "cmd.exe";
             String Arguments = "/c" + " \"" + _vssetup + " & ";
 
@@ -232,7 +263,7 @@ namespace ClangTasks
                 engine.LogMessageEvent(Msg);
 
                 _additionaloptions += " -Wl,/dll,/subsystem:windows,/machine:x64";
-                Arguments += "clang" + _additionaloptions + " " + _additionallibrarydirectories + " " + _additionaldependencies + " " + _defaultlibrary + " -o " + "\"" + _outputs + "\"" + " " + "\"" + _inputs + "\"" + "\"";
+                Arguments += "clang++ " + _additionaloptions + " " + _additionallibrarydirectories + " " + _additionaldependencies + " " + _defaultlibrary + " -o " + "\"" + _outputs + "\"" + " " + "\"" + _inputs + "\"" + "\"";
             }
             else if (_configuration == "StaticLibrary")
             {
@@ -244,15 +275,27 @@ namespace ClangTasks
                 Msg = new BuildMessageEventArgs("Linking " + _outputs, string.Empty, "ClangTasks", MessageImportance.High);
                 engine.LogMessageEvent(Msg);
 
-                Arguments += "clang " + _additionaloptions + _additionaldependencies + " " + _additionallibrarydirectories + " " + _defaultlibrary + " -o " + "\"" + _outputs + "\"" + " " + "\"" + _inputs + "\"" + "\"";
+                Arguments += "clang++ " + _additionaloptions + " " + _additionaldependencies + " " + _additionallibrarydirectories + " " + _defaultlibrary + " -o " + "\"" + _outputs + "\"" + " " + "\"" + _inputs + "\"" + "\"";
             }
 
             StartInfo.Arguments = Arguments;
-            Msg = new BuildMessageEventArgs(StartInfo.Arguments, string.Empty, "ClangTasks", MessageImportance.High);
-            engine.LogMessageEvent(Msg);
-            Process.StartInfo = StartInfo;
-            Process.Start();
-            Process.WaitForExit();
+
+            if (!string.IsNullOrEmpty(_verbose))
+            {
+                Msg = new BuildMessageEventArgs(StartInfo.Arguments + "\r\n\r\n", string.Empty, "ClangTasks", MessageImportance.High);
+                engine.LogMessageEvent(Msg);
+            }
+
+            Linker.StartInfo = StartInfo;
+            Linker.Start();
+            string error = Linker.StandardError.ReadToEnd();
+            Linker.WaitForExit();
+
+            if (!string.IsNullOrEmpty(error))
+            {
+                Msg = new BuildMessageEventArgs("\r\n\r\n" + error, string.Empty, "ClangTasks", MessageImportance.High);
+                engine.LogMessageEvent(Msg);
+            }
 
             return true;
         }

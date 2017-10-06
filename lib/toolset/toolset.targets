@@ -8,6 +8,7 @@
     <Target Name="ClCompile">
 
         <PropertyGroup>
+
             <VSSetup>&quot;C:/Program Files (x86)/Microsoft Visual Studio 14.0/VC/vcvarsall.bat&quot; amd64</VSSetup>
 
             <Compiler Condition="'%(ClCompile.CompileAs)' == 'CompileAsC'">clang</Compiler>
@@ -33,15 +34,17 @@
             <PreprocessorDefinitions Condition="'%(ClCompile.RuntimeLibrary)' == 'MultiThreadedDebugDLL'">$(PreprocessorDefinitions) -D_DEBUG -D_MT -D_DLL</PreprocessorDefinitions>
             <AdditionalOptions Condition="'%(ClCompile.RuntimeLibrary)' == 'MultiThreadedDebugDLL'">%(ClCompile.AdditionalOptions) -Xclang --dependent-lib=msvcrtd</AdditionalOptions>
 
-            <Ignore>-Wno-ignored-attributes -Wno-microsoft-template -Wno-duplicate-decl-specifier -Wno-logical-op-parentheses -Wno-dangling-else -Wno-nonportable-include-path -Wno-ignored-pragma-intrinsic -Wno-expansion-to-defined -Wno-int-to-void-pointer-cast -Wno-invalid-command-line-argument -Wno-unused-value -Wno-unused-command-line-argument -Wpragma-pack</Ignore>
+            <Ignore>-Wno-ignored-attributes -Wno-microsoft-template -Wno-duplicate-decl-specifier -Wno-logical-op-parentheses -Wno-dangling-else -Wno-nonportable-include-path -Wno-ignored-pragma-intrinsic -Wno-expansion-to-defined -Wno-int-to-void-pointer-cast -Wno-invalid-command-line-argument -Wno-unused-value -Wno-unused-command-line-argument -Wno-pragma-pack</Ignore>
 
             <PreprocessorDefinitions>$(PreprocessorDefinitions) -D_USE_MATH_DEFINES=1 -D_CRT_SECURE_NO_WARNINGS=1 -D_SCL_SECURE_NO_WARNINGS=1</PreprocessorDefinitions>
             <AdditionalOptions>$(AdditionalOptions) $(Ignore) -Xclang --dependent-lib=oldnames -fms-compatibility-version=19.0.24215 -fms-compatibility -fms-extensions -fdelayed-template-parsing -fdeclspec</AdditionalOptions>
         
-            <OutputDir Condition="'%(ClCompile.ObjectFileName)' != ''">%(ClCompile.ObjectFileName)</OutputDir>
-            <OutputDir Condition="'%(ClCompile.ObjectFileName)' == ''">$(PlatForm)\$(Configuration)\</OutputDir>
+            <AdditionalOptions Condition="'$(Configuration)' == 'Debug'">$(AdditionalOptions) -gcodeview</AdditionalOptions>
+
+            <OutputDir>$(IntDir)</OutputDir>
+            
         </PropertyGroup>
-       
+    
         <ClangCompile
             ClangInputs="@(ClCompile)"
             ClangOutputs="@(ClCompile->'%(Filename).obj')"
@@ -68,6 +71,11 @@
             <DefaultLibrary Condition="'%(ClCompile.RuntimeLibrary)' == 'MultiThreadedDLL'">-nostdlib -Xclang -defaultlib=msvcrt</DefaultLibrary>
             <DefaultLibrary Condition="'%(ClCompile.RuntimeLibrary)' == 'MultiThreadedDebugDLL'">-nostdlib -Xclang -defaultlib=msvcrtd</DefaultLibrary>
 
+            <AdditionalOptions>$([System.String]::Copy('%(Link.AdditionalOptions)').Replace('  ',''))</AdditionalOptions>
+            <AdditionalOptions>$([System.String]::Copy('$(AdditionalOptions)').Replace(' ',','))</AdditionalOptions>
+            <AdditionalOptions Condition="'$(AdditionalOptions)' != ''">-Wl,$(AdditionalOptions)</AdditionalOptions>
+            <AdditionalOptions Condition="'$(Configuration)' == 'Debug'">$(AdditionalOptions) -Wl,/debug</AdditionalOptions>
+
             <AdditionalLibraryDirectories>$([System.String]::Copy('%(Link.AdditionalLibraryDirectories)').TrimEnd(';').Replace(';','&quot; -L&quot;'))</AdditionalLibraryDirectories>
             <AdditionalLibraryDirectories Condition="'$(AdditionalLibraryDirectories)' != ''">-L&quot;$(AdditionalLibraryDirectories)&quot;</AdditionalLibraryDirectories>
 
@@ -76,9 +84,10 @@
 
         <ClangLink
             ClangVSSetup="$(VSSetup)"
+            ClangVerbose="$(Verbose)"
             ClangInputs="@(Link, '&quot; &quot;')"
-            ClangOutputs="$(TargetPath)"
-            ClangAdditionalOptions="%(Link.AdditionalOptions)"
+            ClangOutputs="$(OutDir)$(TargetName)$(TargetExt)"
+            ClangAdditionalOptions="$(AdditionalOptions)"
             ClangAdditionalDependencies="$(AdditionalDependencies)"
             ClangAdditionalLibraryDirectories="$(AdditionalLibraryDirectories)"
             ClangDefaultLibrary="$(DefaultLibrary)"
